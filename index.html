@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettervorhersage</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: justify;
+            color: white;
+            background-color: rgb(33, 33, 33);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #forecast {
+            display: flex;
+        }
+
+        .day {
+            flex: 1; 
+            padding-left: 30px;
+            padding-right: 30px;
+            padding-bottom: 15px;
+            margin: 10px;
+            border-radius: 20px;
+            background-color: rgb(70, 70, 70);
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wettervorhersage</h1>
+    <div id="forecast">
+        <div class="day">
+            <h2 id="today_title"></h2>
+            <p id="today"></p>
+        </div>
+        <div class="day">
+            <h2 id="tomorrow_title"></h2>
+            <p id="tomorrow"></p>
+        </div>
+    </div>
+    <script>
+        function adjustLayout() {
+            const div = document.getElementById('forecast');
+            if (window.innerWidth < 600) {
+                div.style.display = "block";
+                document.querySelectorAll(".day").forEach(day => {
+                    day.style.paddingTop = "1px";
+                    day.style.paddingBottom = "10px";
+                });
+            } else {
+                div.style.display = "flex";
+                document.querySelectorAll(".day").forEach(day => {
+                    day.style.paddingTop = "0px";
+                    day.style.paddingBottom = "15px";
+                });
+            }
+        }
+
+        window.addEventListener('resize', adjustLayout);
+
+        function choice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function getWeekday(tomorrow) {
+            const wochentage = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+            if (tomorrow) {
+                const today = new Date();
+                const tomorrow_day = new Date();
+                tomorrow_day.setDate(today.getDate() + 1)
+                return wochentage[tomorrow_day.getDay()];
+            } else {
+                const today = new Date();
+                return wochentage[today.getDay()];
+            }
+        }
+
+        function mostFrequent(arr) {
+            const frequency = {};
+            let maxCount = 0;
+            let mostFrequentItem;
+
+            for (const item of arr) {
+                frequency[item] = (frequency[item] || 0) + 1;
+                if (frequency[item] > maxCount) {
+                    maxCount = frequency[item];
+                    mostFrequentItem = item;
+                }
+            }
+
+            return mostFrequentItem;
+        }
+
+        function getTextFromCode(code, daytype) {
+            switch (code) {
+                case 0: return "ist es " + daytype + " wolkenlos";
+                case 1: return "ist es " + daytype + " meist sonnig";
+                case 2: return "ist es " + daytype + " leicht bewölkt";
+                case 3: return "ist es " + daytype + " bedeckt";
+                case 45: case 48: return "ist es " + daytype + " neblig";
+                case 51: return "nieselt es " + daytype + " leicht";
+                case 53: case 55: return "nieselt es " + daytype;
+                case 61: return "regnet es " + daytype + " leicht";
+                case 63: return "regnet es " + daytype;
+                case 65: return "regnet es " + daytype + " stark";
+                case 66: case 71: return "schneit es " + daytype + " leicht";
+                case 73: case 77: case 85: return "schneit es " + daytype;
+                case 67: case 75: case 86: return "schneit es " + daytype + " stark";
+                case 80: return daytype + " leichte Schauer";
+                case 81: return daytype + " Schauer";
+                case 82: return daytype + " heftige Schauer";
+                case 95: return daytype + " Schauer und Gewitter";
+                case 96: return daytype + " heftige Gewitter";
+                case 99: return daytype + " heftige Gewitter mit Hagel"
+                default: return "ist es " + daytype + " leicht bewölkt";
+            }
+        }
+
+        function createTemperatureSentence(min, max) {
+            let start_choices = ["Die Temperaturen liegen am Morgen bei rund ", "Die Temperaturen liegen am Morgen bei etwa ", "Die Temperaturen starten am Morgen bei rund ", "Die Temperaturen starten am Morgen bei etwa "];
+            let end_choices = [" °C und erreichen am Nachmittag rund ", " °C und erreichen am Nachmittag etwa ", " °C und steigen bis am Nachmittag auf rund ", " °C und steigen bis am Nachmittag auf etwa "];
+            return choice(start_choices) + min + choice(end_choices) + max + " °C.";
+        }
+
+        function createWeatherSentence(day, weather_code) {
+            let morning_arr = weather_code.slice(6, 11);
+            let afternoon_arr = weather_code.slice(12, 16);
+            let evening_arr = weather_code.slice(17, 21);
+
+            let morning = mostFrequent(morning_arr);
+            let afternoon = mostFrequent(afternoon_arr);
+            let evening = mostFrequent(evening_arr);
+
+            if (morning === afternoon && afternoon === evening) { //all are equal
+                return day + " " + getTextFromCode(morning, "") + ".";
+            } else if (morning === afternoon && afternoon !== evening) { //morning and afternoon are the same, but not evening
+                return day + " " + getTextFromCode(morning, "") + ". Abends " + getTextFromCode(evening, "") + ".";
+            } else if (morning === evening && morning !== afternoon) { //morning and evening are the same, but not afternoon
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Nachmittags " + getTextFromCode(afternoon, "") + ". Am Abend " + getTextFromCode(evening, "nochmals") + ".";
+            } else if (afternoon === evening && afternoon !== morning) { //afternoon and evening are the same, but not morning
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Ab dem Nachmittag " + getTextFromCode(evening, "") + ".";
+            } else { //none of them are the same
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Nachmittags " + getTextFromCode(afternoon, "") + ". Am Abend " + getTextFromCode(evening, "") + ".";
+            }
+        }
+
+        async function makeForecast() {
+            const url = "https://api.open-meteo.com/v1/forecast?latitude=46.7512&longitude=7.6217&hourly=weather_code,temperature_2m&models=icon_d2&forecast_days=2";
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const now = new Date();
+            const hour = now.getHours();
+
+            let hours, temperature_2m, codes, rain, prob, clouds, day, weather_sentence, min, max, temperature_sentence;
+
+            
+            hours = data.hourly.time.slice(0, 24);
+            temperature_2m = data.hourly.temperature_2m.slice(0, 24);
+            codes = data.hourly.weather_code.slice(0, 24);
+            day = getWeekday(false);
+
+            weather_sentence = createWeatherSentence(day, codes);
+
+            min = Math.round(temperature_2m[7]);
+            max = Math.round(Math.max(...temperature_2m));
+            temperature_sentence = createTemperatureSentence(min, max);
+
+            document.getElementById("today_title").innerText = day + ", " + String(now.getDate()).padStart(2, '0') + '.' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById("today").innerText = "Heute " + weather_sentence.replaceAll(" .", ".") + " " + temperature_sentence;
+            
+
+            hours = data.hourly.time.slice(-24);
+            temperature_2m = data.hourly.temperature_2m.slice(-24);
+            codes = data.hourly.weather_code.slice(-24);
+            day = getWeekday(true);
+
+            weather_sentence = createWeatherSentence(day, codes);
+
+            min = Math.round(temperature_2m[7]);
+            max = Math.round(Math.max(...temperature_2m));
+            temperature_sentence = createTemperatureSentence(min, max);
+
+            let tomorrow = new Date(now);
+            tomorrow.setDate(now.getDate() + 1);
+            document.getElementById("tomorrow_title").innerText = day + ", " + String(tomorrow.getDate()).padStart(2, '0') + '.' + String(tomorrow.getMonth() + 1).padStart(2, '0');
+            document.getElementById("tomorrow").innerText = "Morgen " + weather_sentence.replaceAll(" .", ".") + " " + temperature_sentence;
+        }
+
+        window.onload = function() {
+            makeForecast();
+            adjustLayout();
+        }
+    </script>
+</body>
+</html>
