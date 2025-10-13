@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettervorhersage</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: justify;
+            color: white;
+            background-color: rgb(40, 40, 40);
+        }
+
+        h2 {
+            text-align: left;
+        }
+
+        #forecast {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .days-container {
+            display: flex;
+        }
+
+        .day {
+            flex: 1; 
+            padding-left: 30px;
+            padding-right: 30px;
+            padding-bottom: 15px;
+            margin: 10px;
+            border-radius: 20px;
+            background-color: rgb(70, 70, 70);
+            box-sizing: border-box;
+        }
+
+        a {
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+
+        li {
+            margin-bottom: 20px;
+        }
+
+        a:hover {
+            background-color: rgb(40, 40, 40);
+        }
+
+        .navbar {
+            background-color: rgb(25, 25, 25);
+            display: flex;
+            position: sticky;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .rightNav {
+            text-align: right;
+        }
+
+        #side_nav {
+            position: absolute;
+            display: none;
+            background-color: rgb(25, 25, 25);
+            width: 50%;
+            height: 100vh;
+            top: 0px;
+            right: 0px;
+            box-shadow: -2px 4px 5px 3px rgba(0, 0, 0, 0.25);
+        }
+
+        .menu {
+            background-color: rgb(25, 25, 25);
+            border: none;
+            margin-right: 10px;
+            margin-top: 5px;
+        }
+
+        #loader {
+            display: none; /* unsichtbar am Anfang */
+            border: 6px solid #f3f3f3; 
+            border-top: 6px solid #3498db; 
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto; /* zentriert */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #search {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #search_field {
+            width: 100%;
+            margin: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 9px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            border: none;
+            border-radius: 7px;
+            outline: none;
+            background-color: rgb(70, 70, 70);
+            color: white;
+        }
+
+        #suggestions {
+            position: absolute;
+            display: none;
+            top: 144px;
+            font-size: 16px;
+            width: calc(100% - 37px);
+            background-color: rgb(70, 70, 70);
+            border-radius: 7px;
+            overflow: hidden;
+            z-index: 10;
+            box-shadow: 2px 4px 5px 3px rgba(0, 0, 0, 0.25);
+        }
+
+        .suggestion {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .suggestion:hover {
+            background-color: rgb(60, 60, 60);
+        }
+
+        #outlook_title {
+            margin-left: 10px;
+            margin-top: 30px;
+        }
+
+        .outlook_day {
+            background-color: rgb(70, 70, 70);
+            height: 50px;
+            margin-left: 10px;
+            margin-right: 10px;
+            padding: 10px;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-bottom: 1px solid white;
+            display: flex;
+        }
+
+        #day0 {
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+
+        #day6 {
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            border-bottom: none;
+        }
+
+        .date_text {
+            width: 75px;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .date_text::after {
+            content: ''; /* Add an invisible element to justify the last line */
+            display: inline-block;
+            width: 100%; /* Forces the last line to stretch */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <img src="logo.png" alt="logo" height="75px">
+        <div class="rightNav">
+            <button id="open_menu" class="menu" onclick="openMenu()"><img src="menu.svg" alt="menu"></button>
+        </div>
+    </nav>
+    <div id="side_nav">
+        <button id="close_menu" class="menu" onclick="closeMenu()"><img src="cross.png" alt="menu"></button>
+        <ul class="nav-list">
+            <li><a href="#home">Home</a></li>
+            <li><a href="charts.html">Diagramme</a></li>
+            <li><a href="#maps">Karten</a></li>
+            <li><a href="#contact">Kontakt</a></li>
+        </ul>
+    </div>
+    <div id="loader"></div>
+    <div id="forecast">
+        <div id="search">
+            <input type="text" id="search_field" placeholder="Ort suchen">
+            <div id="suggestions"></div>
+        </div>
+        <div class="days-container">
+            <div class="day">
+                <h2 id="today_title"></h2>
+                <p id="today"></p>
+            </div>
+            <div class="day">
+                <h2 id="tomorrow_title"></h2>
+                <p id="tomorrow"></p>
+            </div>
+        </div>
+        <h1 id="outlook_title">Aussichten für Bern</h1>
+        <div id="outlook">
+            <div id="day0" class="outlook_day"></div>
+            <div id="day1" class="outlook_day"></div>
+            <div id="day2" class="outlook_day"></div>
+            <div id="day3" class="outlook_day"></div>
+            <div id="day4" class="outlook_day"></div>
+            <div id="day5" class="outlook_day"></div>
+            <div id="day6" class="outlook_day"></div>
+        </div>
+    </div>
+    <script>
+        let gemeinden = {};
+
+        const input = document.getElementById("search_field");
+        const suggestionsDiv = document.getElementById("suggestions");
+
+        fetch("https://raw.githubusercontent.com/Potzblitzwetter/home/refs/heads/main/gemeinden.json")
+            .then(res => res.json())
+            .then(json => gemeinden = json)
+            .catch(err => console.error("Fehler beim Laden des JSON:", err));
+
+        input.addEventListener("input", () => {
+            const query = input.value.trim().toLowerCase();
+            suggestionsDiv.innerHTML = "";
+
+            if (query.length === 0) {
+                suggestionsDiv.style = "display: none;";
+                return;
+            }
+
+            let matches = Object.keys(gemeinden)
+                .filter(name => name.toLowerCase().startsWith(query));
+
+            if (matches.length < 5) {
+                const extra = Object.keys(gemeinden)
+                    .filter(name =>
+                        name.toLowerCase().includes(query) && !matches.includes(name)
+                    );
+
+                matches = matches.concat(extra)
+            }
+
+            matches = matches.slice(0, 5);
+
+            if (matches.length === 0) {
+                suggestionsDiv.style = "display: none;";
+                return;
+            } else {
+                suggestionsDiv.style = "display: block";
+            }
+
+            matches.forEach(name => {
+                const div = document.createElement("div");
+                div.classList.add("suggestion");
+                div.textContent = name;
+                div.addEventListener("click", () => {
+                    input.value = name;
+                    suggestionsDiv.innerHTML = "";
+                    suggestionsDiv.style = "display: none;";
+                    const [lat, lon] = gemeinden[name];
+                    makeForecast(lat, lon); // <-- Ort wechseln
+                });
+                suggestionsDiv.appendChild(div);
+            });
+        });
+
+
+        document.addEventListener("click", (e) => {
+            if (!suggestionsDiv.contains(e.target) && e.target !== input) {
+                suggestionsDiv.innerHTML = "";
+                suggestionsDiv.style = "display: none;";
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            const side_nav = document.getElementById("side_nav");
+            if (!side_nav.contains(e.target) && !document.getElementById("open_menu").contains(e.target)) {
+                side_nav.style = "display: none;";
+            }
+        });
+
+        function openMenu() {
+            document.getElementById("side_nav").style = "display: block;";
+        }
+
+        function closeMenu() {
+            document.getElementById("side_nav").style = "display: none;";
+        }
+
+        function adjustLayout() {
+            const daysContainer = document.querySelector('.days-container');
+
+            if (window.innerWidth < 600) {
+                daysContainer.style.flexDirection = "column";  // untereinander
+            } else {
+                daysContainer.style.flexDirection = "row";     // nebeneinander
+            }
+        }
+
+
+        function showLoader() {
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("forecast").style.display = "none";
+        }
+
+        function hideLoader() {
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("forecast").style.display = "flex";
+        }
+
+        window.addEventListener('resize', adjustLayout);
+
+        function choice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function getWeekday(tomorrow) {
+            const wochentage = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+            if (tomorrow) {
+                const today = new Date();
+                const tomorrow_day = new Date();
+                tomorrow_day.setDate(today.getDate() + 1)
+                return wochentage[tomorrow_day.getDay()];
+            } else {
+                const today = new Date();
+                return wochentage[today.getDay()];
+            }
+        }
+
+        function mostFrequent(arr) {
+            const frequency = {};
+            let maxCount = 0;
+            let mostFrequentItem;
+
+            for (const item of arr) {
+                frequency[item] = (frequency[item] || 0) + 1;
+                if (frequency[item] > maxCount) {
+                    maxCount = frequency[item];
+                    mostFrequentItem = item;
+                }
+            }
+
+            return mostFrequentItem;
+        }
+
+        function getTextFromCode(code, daytype) {
+            switch (code) {
+                case 0: return "ist es " + daytype + " wolkenlos";
+                case 1: return "ist es " + daytype + " meist sonnig";
+                case 2: return "ist es " + daytype + " leicht bewölkt";
+                case 3: return "ist es " + daytype + " bedeckt";
+                case 45: case 48: return "ist es " + daytype + " neblig";
+                case 51: return "nieselt es " + daytype + " leicht";
+                case 53: case 55: return "nieselt es " + daytype;
+                case 61: return "regnet es " + daytype + " leicht";
+                case 63: return "regnet es " + daytype;
+                case 65: return "regnet es " + daytype + " stark";
+                case 66: case 71: return "schneit es " + daytype + " leicht";
+                case 73: case 77: case 85: return "schneit es " + daytype;
+                case 67: case 75: case 86: return "schneit es " + daytype + " stark";
+                case 80: return daytype + " leichte Schauer";
+                case 81: return daytype + " Schauer";
+                case 82: return daytype + " heftige Schauer";
+                case 95: return daytype + " Schauer und Gewitter";
+                case 96: return daytype + " heftige Gewitter";
+                case 99: return daytype + " heftige Gewitter mit Hagel"
+                default: return "ist es " + daytype + " leicht bewölkt";
+            }
+        }
+
+        function createTemperatureSentence(min, max) {
+            let start_choices = ["Die Temperaturen liegen am Morgen bei rund ", "Die Temperaturen liegen am Morgen bei etwa ", "Die Temperaturen starten am Morgen bei rund ", "Die Temperaturen starten am Morgen bei etwa "];
+            let end_choices = [" °C und erreichen am Nachmittag rund ", " °C und erreichen am Nachmittag etwa ", " °C und steigen bis am Nachmittag auf rund ", " °C und steigen bis am Nachmittag auf etwa "];
+            return choice(start_choices) + min + choice(end_choices) + max + " °C.";
+        }
+
+        function createWeatherSentence(day, weather_code) {
+            let morning_arr = weather_code.slice(6, 11);
+            let afternoon_arr = weather_code.slice(12, 16);
+            let evening_arr = weather_code.slice(17, 21);
+
+            let morning = mostFrequent(morning_arr);
+            let afternoon = mostFrequent(afternoon_arr);
+            let evening = mostFrequent(evening_arr);
+
+            if (morning === afternoon && afternoon === evening) { //all are equal
+                return day + " " + getTextFromCode(morning, "") + ".";
+            } else if (morning === afternoon && afternoon !== evening) { //morning and afternoon are the same, but not evening
+                return day + " " + getTextFromCode(morning, "") + ". Abends " + getTextFromCode(evening, "") + ".";
+            } else if (morning === evening && morning !== afternoon) { //morning and evening are the same, but not afternoon
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Nachmittags " + getTextFromCode(afternoon, "") + ". Am Abend " + getTextFromCode(evening, "nochmals") + ".";
+            } else if (afternoon === evening && afternoon !== morning) { //afternoon and evening are the same, but not morning
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Ab dem Nachmittag " + getTextFromCode(evening, "") + ".";
+            } else { //none of them are the same
+                return day + " " + getTextFromCode(morning, "am Vormittag") + ". Nachmittags " + getTextFromCode(afternoon, "") + ". Am Abend " + getTextFromCode(evening, "") + ".";
+            }
+        }
+
+        async function getPlaceName(lat, lon) {
+            const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=de`;
+            const response = await fetch(url, { headers: { "User-Agent": "WetterApp/1.0" } });
+            const data = await response.json();
+            return data.address.city || data.address.town || data.address.village || data.address.hamlet || `${lat}, ${lon}`;
+        }
+
+        function getNextSevenDays(names) {
+            const dates = [];
+            const today = new Date();
+
+            for (let i = 0; i < 7; i++) {
+                const currentDate = new Date(today);
+                currentDate.setDate(today.getDate() + i);
+
+                const day = String(currentDate.getDate()).padStart(2, '0'); // Ensure 2 digits
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+
+                dates.push(`${names[i]}, ${day}.${month}`);
+            }
+
+            return dates;
+        }
+
+        function getURLfromCode(code) {
+            return `https://github.com/engperini/open-meteo-icons/blob/main/icons/${code}d_big.png?raw=true`;
+        }
+
+        async function createOutlook(lat, lon, today) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&models=icon_seamless&timezone=Europe%2FBerlin`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+            const index = weekdays.indexOf(today.slice(0, 2));
+            const next_days_names = weekdays.slice(index, index + 7);
+            const next_days = getNextSevenDays(next_days_names);
+            
+            let weather_code, temperature_2m_max, temperature_2m_min, precipitation_sum, text;
+
+            for (let i = 0; i < 7; i++) {
+                day = next_days[i];
+                weather_code = data["daily"]["weather_code"][i];
+                temperature_2m_max = data["daily"]["temperature_2m_max"][i];
+                temperature_2m_min = data["daily"]["temperature_2m_min"][i];
+                precipitation_sum = data["daily"]["precipitation_sum"][i];
+                text = `<p class="date_text"><strong>${day}</strong></p><img src="${getURLfromCode(weather_code)}" style="width: 50px; height: 50px;"><p style="width: 150px;"><i class="bi bi-thermometer"></i> ${temperature_2m_min} °C | ${temperature_2m_max} °C</p><p><i class="bi bi-droplet"></i> ${precipitation_sum} mm</p>`;
+                document.getElementById(`day${i}`).innerHTML = text;
+            }
+        }
+
+        async function makeForecast(lat, lon) {
+            showLoader();
+
+            const place = await getPlaceName(lat, lon);
+
+            document.getElementById("outlook_title").innerText = `Aussichten für ${place}`
+
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=weather_code,temperature_2m&models=icon_d2&forecast_days=2&timezone=Europe%2FBerlin`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const now = new Date();
+            const hour = now.getHours();
+
+            let hours, temperature_2m, codes, rain, prob, clouds, day, weather_sentence, min, max, temperature_sentence;
+
+            
+            hours = data.hourly.time.slice(0, 24);
+            temperature_2m = data.hourly.temperature_2m.slice(0, 24);
+            codes = data.hourly.weather_code.slice(0, 24);
+            day = getWeekday(false);
+            const today = day;
+
+            weather_sentence = createWeatherSentence(day, codes);
+
+            min = Math.round(temperature_2m[7]);
+            max = Math.round(Math.max(...temperature_2m));
+            temperature_sentence = createTemperatureSentence(min, max);
+
+            document.getElementById("today_title").innerText = place + ", " + day + ", " + String(now.getDate()).padStart(2, '0') + '.' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById("today").innerText = "Heute " + weather_sentence.replaceAll(" .", ".") + " " + temperature_sentence;
+            
+
+            hours = data.hourly.time.slice(-24);
+            temperature_2m = data.hourly.temperature_2m.slice(-24);
+            codes = data.hourly.weather_code.slice(-24);
+            day = getWeekday(true);
+
+            weather_sentence = createWeatherSentence(day, codes);
+
+            min = Math.round(temperature_2m[7]);
+            max = Math.round(Math.max(...temperature_2m));
+            temperature_sentence = createTemperatureSentence(min, max);
+
+            let tomorrow = new Date(now);
+            tomorrow.setDate(now.getDate() + 1);
+            document.getElementById("tomorrow_title").innerText = place + ", " + day + ", " + String(tomorrow.getDate()).padStart(2, '0') + '.' + String(tomorrow.getMonth() + 1).padStart(2, '0');
+            document.getElementById("tomorrow").innerText = "Morgen " + weather_sentence.replaceAll(" .", ".") + " " + temperature_sentence;
+
+            await createOutlook(lat, lon, today);
+
+            hideLoader();
+        }
+
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        window.onload = function() {
+            if (!isMobile()) {
+                window.location = "index.html";
+            }
+            
+            adjustLayout();
+            makeForecast(46.9480, 7.4474);
+            navigator.geolocation.getCurrentPosition(
+            (position) => {
+                var latitude = position.coords.latitude;
+                var longitude = position.coords.longitude;
+                makeForecast(latitude, longitude);
+            },
+            (error) => {
+                console.error('Failed to get location', error);
+            }
+            );
+        }
+    </script>
+</body>
+</html>
